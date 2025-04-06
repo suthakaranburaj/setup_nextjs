@@ -8,32 +8,20 @@ const userSchema = new Schema(
       type: String,
       required: true,
       unique: true,
-      lowecase: true,
+      lowercase: true, // fixed typo
       trim: true,
     },
     avatar: {
-      type: String, // cloudinary url
+      type: String,
       required: false,
     },
-    // watchHistory: [
-    //   {
-    //     type: Schema.Types.ObjectId,
-    //     ref: "Video",
-    //   },
-    // ],
-    // subscriptions: [
-    //   {
-    //     type: Schema.Types.ObjectId,
-    //     ref: "Subscriptions",
-    //   },
-    // ],
     password: {
       type: String,
       required: [true, "Password is required"],
     },
-    refreshToken: {
-      type: String,
-    },
+    // refreshToken: {
+    //   type: String,
+    // },
   },
   {
     timestamps: true,
@@ -42,7 +30,6 @@ const userSchema = new Schema(
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
@@ -53,26 +40,17 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
-    {
-      _id: this._id,
-      email: this.email,
-    },
+    { _id: this._id, email: this.email },
     process.env.ACCESS_TOKEN_SECRET,
-    {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
-    }
-  );
-};
-userSchema.methods.generateRefreshToken = function () {
-  return jwt.sign(
-    {
-      _id: this._id,
-    },
-    process.env.REFRESH_TOKEN_SECRET,
-    {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
-    }
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
   );
 };
 
-export const User = mongoose.model("User", userSchema);
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+  });
+};
+
+// ✅ Fix for OverwriteModelError
+export const User = mongoose.models.User || mongoose.model("User", userSchema);
