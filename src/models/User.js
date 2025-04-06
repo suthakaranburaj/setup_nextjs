@@ -2,38 +2,37 @@ import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
+// Avoid recompiling model
 const userSchema = new Schema(
   {
     email: {
       type: String,
       required: true,
       unique: true,
-      lowercase: true, // fixed typo
+      lowercase: true,
       trim: true,
     },
     avatar: {
       type: String,
-      required: false,
     },
     password: {
       type: String,
       required: [true, "Password is required"],
     },
-    // refreshToken: {
-    //   type: String,
-    // },
   },
   {
     timestamps: true,
   }
 );
 
+// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
+// Schema methods
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
@@ -52,5 +51,6 @@ userSchema.methods.generateRefreshToken = function () {
   });
 };
 
-// ✅ Fix for OverwriteModelError
-export const User = mongoose.models.User || mongoose.model("User", userSchema);
+// ✅ Guard against recompilation but preserve schema methods
+export const User =
+  mongoose.models.__User || mongoose.model("__User", userSchema);
